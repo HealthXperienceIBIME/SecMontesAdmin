@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getAllParticipants, deleteParticipant } from '../firebase/helpers'
 import { Search, Trash2, Edit2, ExternalLink } from 'lucide-react'
 
-const CARNET_BASE = 'https://TUUSER.github.io/healthxperience-carnet'
+const CARNET_BASE = 'https://HealthXperienceIBIME.github.io/SecMontesCarnet'
 
 export default function Usuarios() {
   const [all, setAll] = useState([])
