@@ -7,9 +7,12 @@ import { Sparkles } from 'lucide-react'
 const GEMINI_API_KEY = 'AQ.Ab8RN6LH-pjj99MuXxy5gY6Diu0WCdvr_S7gnJ96KscDrYbypw' // ⚠️ reemplaza con tu clave de Gemini
 
 async function generateWithGemini(prompt) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': GEMINI_API_KEY
+    },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
