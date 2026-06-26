@@ -34,7 +34,7 @@ export default function App() {
   if (!authed) return <Login onLogin={handleLogin} />
 
   return (
-    <BrowserRouter basename="/healthxperience-admin">
+    <BrowserRouter basename="/SecMontesAdmin">
       <Routes>
         <Route path="/" element={<Layout onLogout={handleLogout} />}>
           <Route index element={<Navigate to="/dashboard" />} />
