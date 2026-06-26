@@ -4,7 +4,7 @@ import QRScanner from '../components/QRScanner'
 import { getParticipant, saveRecomendaciones } from '../firebase/helpers'
 import { Sparkles } from 'lucide-react'
 
-const GEMINI_API_KEY = 'TU_GEMINI_API_KEY' // ⚠️ reemplaza con tu clave de Gemini
+const GEMINI_API_KEY = 'AQ.Ab8RN6LH-pjj99MuXxy5gY6Diu0WCdvr_S7gnJ96KscDrYbypw' // ⚠️ reemplaza con tu clave de Gemini
 
 async function generateWithGemini(prompt) {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
