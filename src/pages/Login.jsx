@@ -24,18 +24,19 @@ export default function Login({ onLogin }) {
       backgroundSize: '40px 40px'
     }}>
       <div style={{
-        width: 400, background: 'var(--bg-card)', border: '1px solid var(--border)',
+        width: 420, background: 'var(--bg-card)', border: '1px solid var(--border)',
         borderRadius: 20, padding: 40, boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
       }} className="fade-in">
-        {/* Logo */}
+
+        {/* Logos */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+          <img src="/SecMontesAdmin/logo-ibime.png" alt="IBIME" style={{ height: 38, objectFit: 'contain' }} />
+          <img src="/SecMontesAdmin/logo-hx.png" alt="HealthXperience" style={{ height: 38, objectFit: 'contain' }} />
+        </div>
+
+        {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #00d4a0, #8b5cf6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px', fontSize: 28
-          }}>💚</div>
-          <h1 style={{ fontFamily: 'Space Grotesk', fontSize: 24, fontWeight: 700, color: 'var(--accent-teal)', letterSpacing: 2 }}>
+          <h1 style={{ fontFamily: 'Space Grotesk', fontSize: 22, fontWeight: 700, color: 'var(--accent-teal)', letterSpacing: 2 }}>
             HEALTHXPERIENCE
           </h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: 6, fontSize: 13 }}>
@@ -72,7 +73,7 @@ export default function Login({ onLogin }) {
         </form>
 
         <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-muted)', fontSize: 12 }}>
-          🔒 Acceso exclusivo IBIME 2026
+          PROYECTO HEALTHXPERIENCE IBIME 2026
         </p>
       </div>
     </div>
