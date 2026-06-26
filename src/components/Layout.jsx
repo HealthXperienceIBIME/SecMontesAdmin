@@ -1,5 +1,5 @@
 // src/components/Layout.jsx
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, UserPlus, Calculator, Activity,
   Sparkles, Trophy, Users, Sun, Moon, LogOut
@@ -30,17 +30,20 @@ export default function Layout({ onLogout }) {
         padding: '20px 0'
       }}>
         {/* Logo */}
-        <div style={{ padding: '0 20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'linear-gradient(135deg, #00d4a0, #8b5cf6)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18
-            }}>💚</div>
-            <div>
-              <div style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 13, color: 'var(--accent-teal)', letterSpacing: 1 }}>HEALTHX</div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>IBIME 2026</div>
-            </div>
+        <div style={{ padding: '0 16px 20px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Logo HealthXperience */}
+            <img
+              src="/SecMontesAdmin/logo-hx.png"
+              alt="HealthXperience"
+              style={{ height: 40, objectFit: 'contain' }}
+            />
+            {/* Logo IBIME */}
+            <img
+              src="/SecMontesAdmin/logo-ibime.png"
+              alt="IBIME"
+              style={{ height: 34, objectFit: 'contain' }}
+            />
           </div>
         </div>
 
