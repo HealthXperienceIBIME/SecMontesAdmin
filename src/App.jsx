@@ -12,7 +12,7 @@ import Premiaciones from './pages/Premiaciones'
 import Usuarios from './pages/Usuarios'
 import './index.css'
 
-const ADMIN_PASSWORD = 'ibime2026hx'
+const ADMIN_PASSWORD = 'HXIBIME2026'
 
 export default function App() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('hx_auth') === '1')
