@@ -5,7 +5,7 @@ import { getParticipant, saveRecomendaciones } from '../firebase/helpers'
 import { Sparkles } from 'lucide-react'
 
 // ⚠️ REEMPLAZA CON TU CLAVE DE GEMINI REAL
-const GEMINI_API_KEY = 'TU_GEMINI_API_KEY'
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
 /**
  * Función optimizada para obtener las recomendaciones detalladas usando Streaming.
