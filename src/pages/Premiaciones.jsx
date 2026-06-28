@@ -1,6 +1,7 @@
 // src/pages/Premiaciones.jsx
 import { useEffect, useState } from 'react'
-import { getPremiaciones, getAllParticipants } from '../firebase/helpers'
+import { getPremiaciones } from '../firebase/helpers'
+import { PRESENTACIONES } from '../firebase/helpers'
 import { Trophy, Filter } from 'lucide-react'
 
 const MEDAL = ['🥇', '🥈', '🥉']
@@ -30,39 +31,54 @@ function getValue(p, key) {
 
 export default function Premiaciones() {
   const [data, setData] = useState(null)
-  const [grupos, setGrupos] = useState([])
-  const [filtro, setFiltro] = useState('Todos los grupos')
+  const [filtro, setFiltro] = useState('todas')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function load() {
-      const [prem, all] = await Promise.all([getPremiaciones(), getAllParticipants()])
-      setData(prem)
-      const gs = ['Todos los grupos', ...new Set(all.map(p => p.grupo).filter(Boolean))]
-      setGrupos(gs)
-      setLoading(false)
-    }
-    load()
-  }, [])
+    setLoading(true)
+    getPremiaciones(filtro).then(d => { setData(d); setLoading(false) })
+  }, [filtro])
 
-  const filter = (list) => {
-    if (filtro === 'Todos los grupos') return list
-    return list.filter(p => p.grupo === filtro)
-  }
+  const filtroLabel = filtro === 'todas'
+    ? 'Todos los grupos'
+    : PRESENTACIONES.find(p => p.id === filtro)?.label || filtro
 
   return (
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: 700, marginBottom: 6 }}>PREMIACIONES</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Mejores resultados por categoría</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Mejores resultados por categoría · {filtroLabel}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Filter size={16} color="var(--text-muted)" />
-          <select value={filtro} onChange={e => setFiltro(e.target.value)} style={{ width: 'auto', minWidth: 180 }}>
-            {grupos.map(g => <option key={g}>{g}</option>)}
+          <select value={filtro} onChange={e => setFiltro(e.target.value)} style={{ width: 'auto', minWidth: 200 }}>
+            <option value="todas">Todas las presentaciones</option>
+            {PRESENTACIONES.map(p => (
+              <option key={p.id} value={p.id}>{p.label} — {p.fecha}</option>
+            ))}
           </select>
         </div>
+      </div>
+
+      {/* Filtros rápidos */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        <button onClick={() => setFiltro('todas')}
+          style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            borderColor: filtro === 'todas' ? 'var(--accent-teal)' : 'var(--border)',
+            background: filtro === 'todas' ? 'var(--accent-teal-dim)' : 'transparent',
+            color: filtro === 'todas' ? 'var(--accent-teal)' : 'var(--text-secondary)' }}>
+          Todas
+        </button>
+        {PRESENTACIONES.map(p => (
+          <button key={p.id} onClick={() => setFiltro(p.id)}
+            style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              borderColor: filtro === p.id ? 'var(--accent-teal)' : 'var(--border)',
+              background: filtro === p.id ? 'var(--accent-teal-dim)' : 'transparent',
+              color: filtro === p.id ? 'var(--accent-teal)' : 'var(--text-secondary)' }}>
+            {p.id}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -72,7 +88,7 @@ export default function Premiaciones() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {CATEGORIAS.map(({ key, label, unit, icon, color }) => {
-            const list = filter(data[key] || [])
+            const list = data[key] || []
             return (
               <div key={key} className="card" style={{ borderColor: color + '30', background: color + '05' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -81,8 +97,8 @@ export default function Premiaciones() {
                 </div>
 
                 {list.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sin datos para este grupo</p>
-                ) : list.slice(0, 3).map((p, i) => (
+                  <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sin datos para esta presentación</p>
+                ) : list.map((p, i) => (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < list.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <span style={{ fontSize: 20, width: 28, flexShrink: 0 }}>{MEDAL[i]}</span>
                     <span style={{ fontWeight: 700, color: MEDAL_COLOR[i], minWidth: 16 }}>{i + 1}°</span>
@@ -91,7 +107,7 @@ export default function Premiaciones() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{p.grupo}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{p.grupo} · {p.presentacionLabel}</div>
                     </div>
                     <div className="stat-value" style={{ color, fontSize: 16, flexShrink: 0 }}>
                       {getValue(p, key).toFixed(2)} <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{unit}</span>
