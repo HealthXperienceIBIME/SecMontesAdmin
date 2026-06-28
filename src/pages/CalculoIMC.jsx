@@ -20,13 +20,15 @@ function calcIMC(peso, altura) {
   }
 }
 
-// Componente de cascada animada
-function CascadeStep({ label, value, color, delay, icon }) {
+// Paso individual de cascada — SIN hooks adentro
+function CascadeStep({ label, value, color, delay, icon, started }) {
   const [visible, setVisible] = useState(false)
+
   useEffect(() => {
+    if (!started) return
     const t = setTimeout(() => setVisible(true), delay)
     return () => clearTimeout(t)
-  }, [delay])
+  }, [delay, started])
 
   return (
     <div style={{
@@ -51,6 +53,22 @@ function CascadeStep({ label, value, color, delay, icon }) {
   )
 }
 
+// Stat card individual — SIN hooks adentro
+function StatCard({ label, value, sub, color, visible }) {
+  return (
+    <div className="card" style={{
+      borderColor: color + '40', background: color + '10',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(10px)',
+      transition: 'all 0.4s ease'
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{label}</div>
+      <div className="stat-value" style={{ fontSize: 26, color }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>
+    </div>
+  )
+}
+
 export default function CalculoIMC() {
   const [participant, setParticipant] = useState(null)
   const [result, setResult] = useState(null)
@@ -58,16 +76,29 @@ export default function CalculoIMC() {
   const [loading, setLoading] = useState(false)
   const [showCascade, setShowCascade] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  const [statsVisible, setStatsVisible] = useState([false, false, false])
 
   const handleSearch = async (id) => {
-    setResult(null); setSaved(false); setShowCascade(false); setNotFound(false)
+    setResult(null)
+    setSaved(false)
+    setShowCascade(false)
+    setNotFound(false)
     setParticipant(null)
+    setStatsVisible([false, false, false])
+    setLoading(true)
+
     const p = await getParticipant(id)
+    setLoading(false)
+
     if (p) {
       setParticipant(p)
       const r = calcIMC(p.peso, p.altura)
       setResult(r)
       setTimeout(() => setShowCascade(true), 300)
+      // Stats aparecen escalonadas
+      setTimeout(() => setStatsVisible([true, false, false]), 2000)
+      setTimeout(() => setStatsVisible([true, true, false]), 2200)
+      setTimeout(() => setStatsVisible([true, true, true]), 2400)
     } else {
       setNotFound(true)
     }
@@ -80,12 +111,28 @@ export default function CalculoIMC() {
     setLoading(false)
   }
 
+  const STEPS = result && participant ? [
+    { icon: '📋', label: 'Fórmula IMC', value: 'IMC = peso ÷ altura²', color: 'var(--text-secondary)', delay: 0 },
+    { icon: '⚖️', label: 'Datos del participante', value: `Peso = ${participant.peso} kg  |  Altura = ${participant.altura} m`, color: 'var(--accent-blue)', delay: 400 },
+    { icon: '🔢', label: 'Altura al cuadrado', value: `${participant.altura}² = ${(participant.altura * participant.altura).toFixed(4)} m²`, color: 'var(--accent-purple)', delay: 800 },
+    { icon: '➗', label: 'División', value: `${participant.peso} ÷ ${(participant.altura * participant.altura).toFixed(4)} = ${result.imc}`, color: 'var(--accent-teal)', delay: 1200 },
+    { icon: '📊', label: 'Resultado IMC', value: `${result.imc} — ${result.status}`, color: result.color, delay: 1600 },
+  ] : []
+
+  const STATS = result && participant ? [
+    { label: 'Índice de Masa Corporal', value: result.imc, sub: result.status, color: result.color },
+    { label: 'Grasa Corporal', value: `${result.grasa}%`, sub: 'Estimada', color: 'var(--accent-gold)' },
+    { label: 'Masa Muscular', value: `${result.musculo} kg`, sub: `${Math.round(result.musculo / participant.peso * 100)}% del peso`, color: 'var(--accent-teal)' },
+  ] : []
+
   return (
     <div className="fade-in">
       <h1 style={{ fontFamily: 'Space Grotesk', fontSize: 28, fontWeight: 700, marginBottom: 6 }}>ESTACIÓN: CÁLCULO DE IMC</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 28 }}>Escanea el QR para visualizar el Índice de Masa Corporal</p>
 
       <QRScanner onFound={handleSearch} />
+
+      {loading && <div style={{ textAlign: 'center', padding: 40 }}><span className="spinner" /></div>}
 
       {notFound && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
@@ -107,45 +154,22 @@ export default function CalculoIMC() {
             <div className="stat-value" style={{ fontSize: 28, color: result.color }}>{result.imc}</div>
           </div>
 
-          {/* Cascada de fórmulas */}
-          {showCascade && (
-            <div className="card" style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 16 }}>
-                📐 Análisis Corporal
-              </div>
-
-              <CascadeStep delay={0} icon="📋" label="Fórmula IMC" value="IMC = peso ÷ altura²" color="var(--text-secondary)" />
-              <CascadeStep delay={400} icon="⚖️" label="Datos del participante" value={`Peso = ${participant.peso} kg  |  Altura = ${participant.altura} m`} color="var(--accent-blue)" />
-              <CascadeStep delay={800} icon="🔢" label="Altura al cuadrado" value={`${participant.altura}² = ${(participant.altura * participant.altura).toFixed(4)} m²`} color="var(--accent-purple)" />
-              <CascadeStep delay={1200} icon="➗" label="División" value={`${participant.peso} ÷ ${(participant.altura * participant.altura).toFixed(4)} = ${result.imc}`} color="var(--accent-teal)" />
-              <CascadeStep delay={1600} icon="📊" label="Resultado IMC" value={`${result.imc} — ${result.status}`} color={result.color} />
+          {/* Cascada */}
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 16 }}>
+              📐 Análisis Corporal
             </div>
-          )}
+            {STEPS.map((step, i) => (
+              <CascadeStep key={i} {...step} started={showCascade} />
+            ))}
+          </div>
 
-          {/* Stats cards */}
-          {showCascade && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
-              {[
-                { label: 'Índice de Masa Corporal', value: result.imc, sub: result.status, color: result.color, delay: 2000 },
-                { label: 'Grasa Corporal', value: `${result.grasa}%`, sub: 'Estimada', color: 'var(--accent-gold)', delay: 2200 },
-                { label: 'Masa Muscular', value: `${result.musculo} kg`, sub: `${Math.round(result.musculo / participant.peso * 100)}% del peso`, color: 'var(--accent-teal)', delay: 2400 },
-              ].map(({ label, value, sub, color, delay }) => {
-                const [vis, setVis] = useState(false)
-                useEffect(() => { const t = setTimeout(() => setVis(true), delay); return () => clearTimeout(t) }, [])
-                return (
-                  <div key={label} className="card" style={{
-                    borderColor: color + '40', background: color + '10',
-                    opacity: vis ? 1 : 0, transform: vis ? 'translateY(0)' : 'translateY(10px)',
-                    transition: 'all 0.4s ease'
-                  }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{label}</div>
-                    <div className="stat-value" style={{ fontSize: 26, color }}>{value}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
+            {STATS.map((stat, i) => (
+              <StatCard key={i} {...stat} visible={statsVisible[i]} />
+            ))}
+          </div>
 
           {!saved ? (
             <button onClick={handleSave} className="btn-primary" disabled={loading}
