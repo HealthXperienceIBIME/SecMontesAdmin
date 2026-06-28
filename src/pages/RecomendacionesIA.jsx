@@ -4,27 +4,71 @@ import QRScanner from '../components/QRScanner'
 import { getParticipant, saveRecomendaciones } from '../firebase/helpers'
 import { Sparkles } from 'lucide-react'
 
+// ⚠️ REEMPLAZA CON TU CLAVE DE GEMINI REAL
 const GEMINI_API_KEY = 'TU_GEMINI_API_KEY'
 
-async function generateWithGemini(prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`
+/**
+ * Función optimizada para obtener las recomendaciones detalladas usando Streaming.
+ * En lugar de retornar un string al final, actualiza el estado progresivamente.
+ */
+async function generateRecommendationsStream(prompt, onChunk) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`;
+  
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
+        generationConfig: { 
+          temperature: 0.7, // Bajamos levemente para que sea más directo y rápido
+          maxOutputTokens: 2048 
+        }
       })
-    })
+    });
+
     if (!res.ok) {
-      const err = await res.json()
-      return `Error en la IA: ${err.error?.message || 'No se pudo conectar'}`
+      const err = await res.json();
+      onChunk(`Error en la IA: ${err.error?.message || 'No se pudo conectar'}`);
+      return;
     }
-    const data = await res.json()
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta'
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let textAcumulado = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      try {
+        const regex = /"text":\s*"((?:[^"\\]|\\.)*)"/g;
+        let match;
+        let nuevoTexto = '';
+
+        while ((match = regex.exec(buffer)) !== null) {
+          try {
+            nuevoTexto += JSON.parse(`"${match[1]}"`);
+          } catch {
+            nuevoTexto += match[1];
+          }
+        }
+
+        if (nuevoTexto) {
+          textAcumulado += nuevoTexto;
+          onChunk(textAcumulado);
+          // Cortamos el buffer procesado de forma segura
+          buffer = buffer.substring(buffer.lastIndexOf('}') + 1);
+        }
+      } catch (e) {
+        // Estructura JSON incompleta momentáneamente, espera al próximo chunk
+      }
+    }
   } catch (e) {
-    return 'Error de red al conectar con la IA.'
+    onChunk('Error de red al conectar con la IA.');
   }
 }
 
@@ -54,7 +98,7 @@ Recomendaciones de hidratación según la Jarra del Buen Beber NOM-043 mexicana,
 Recomendaciones del Plato del Buen Comer NOM-043 para frutas/verduras, cereales, proteínas y grasas.
 
 ## DIETA SEMANAL
-Plan de 7 días completo (Lunes a Domingo) con Desayuno, Colación, Comida, Merienda y Cena.
+Plan de 7 días completo (Lunes a Domingo) simplificado con Desayuno, Colación, Comida, Merienda y Cena. Sé directo y conciso para optimizar velocidad.
 
 ## RECOMENDACIONES GENERALES
 Consejos de sueño, actividad física, hábitos saludables${tienePruebas ? ' y mejora de sus marcas deportivas' : ''}.
@@ -74,17 +118,21 @@ function RenderSection({ title, content, icon, color, bgColor }) {
         <h3 style={{ fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: 700, color, margin: 0 }}>{title}</h3>
       </div>
       <div>
-        {lines.map((line, i) => {
-          const parts = line.split(/\*\*(.*?)\*\*/g)
-          return (
-            <p key={i} style={{ marginBottom: 6, color: 'var(--text-secondary)', lineHeight: 1.7, fontSize: 13 }}>
-              {parts.map((p, j) => j % 2 === 1
-                ? <strong key={j} style={{ color: 'var(--text-primary)' }}>{p}</strong>
-                : p
-              )}
-            </p>
-          )
-        })}
+        {lines.length > 0 ? (
+          lines.map((line, i) => {
+            const parts = line.split(/\*\*(.*?)\*\*/g)
+            return (
+              <p key={i} style={{ marginBottom: 6, color: 'var(--text-secondary)', lineHeight: 1.7, fontSize: 13 }}>
+                {parts.map((p, j) => j % 2 === 1
+                  ? <strong key={j} style={{ color: 'var(--text-primary)' }}>{p}</strong>
+                  : p
+                )}
+              </p>
+            )
+          })
+        ) : (
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>Escribiendo contenido...</p>
+        )}
       </div>
     </div>
   )
@@ -124,10 +172,17 @@ export default function RecomendacionesIA() {
   }
 
   const handleGenerate = async () => {
-    setLoading(true); setText('')
-    const result = await generateWithGemini(buildPrompt(participant))
-    setText(result)
-    setLoading(false)
+    if (!participant) return
+    setLoading(true)
+    setText('')
+    
+    const prompt = buildPrompt(participant)
+    
+    // Llamada con streaming en tiempo real
+    await generateRecommendationsStream(prompt, (textStreamAcumulado) => {
+      setText(textStreamAcumulado)
+      setLoading(false) // Quitamos el estado de carga general en cuanto la IA empieza a escupir datos
+    })
   }
 
   const handleSave = async () => {
@@ -159,12 +214,17 @@ export default function RecomendacionesIA() {
             </div>
           </div>
 
-          {!text && (
-            <button onClick={handleGenerate} disabled={loading}
+          {/* El botón se oculta o se deshabilita mientras se genera o si ya hay texto creándose */}
+          {!text && loading && (
+            <div style={{ width: '100%', padding: 16, borderRadius: 12, background: 'var(--bg-secondary)', border: '1px solid var(--border)', textAlign: 'center', fontSize: 14, color: 'var(--text-secondary)' }}>
+              <span className="spinner" style={{ width: 14, height: 14, marginRight: 8 }} /> Conectando con Gemini...
+            </div>
+          )}
+
+          {!text && !loading && (
+            <button onClick={handleGenerate}
               style={{ width: '100%', padding: 16, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(90deg,#8b5cf6,#ec4899)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              {loading
-                ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Generando con IA...</>
-                : <><Sparkles size={18} /> Generar recomendaciones con IA</>}
+              <Sparkles size={18} /> Generar recomendaciones con IA
             </button>
           )}
 
@@ -175,9 +235,9 @@ export default function RecomendacionesIA() {
               ))}
 
               <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                <button onClick={handleGenerate} className="btn-secondary" style={{ flex: 1 }}>↺ Regenerar</button>
+                <button onClick={handleGenerate} className="btn-secondary" style={{ flex: 1 }} disabled={loading}>↺ Regenerar</button>
                 {!saved ? (
-                  <button onClick={handleSave} className="btn-primary" style={{ flex: 2, padding: 14 }}>
+                  <button onClick={handleSave} className="btn-primary" style={{ flex: 2, padding: 14 }} disabled={loading}>
                     💾 Guardar en el carnet
                   </button>
                 ) : (
