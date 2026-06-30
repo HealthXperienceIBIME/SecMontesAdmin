@@ -161,3 +161,33 @@ button {
   animation: spin 0.7s linear infinite;
   display: inline-block;
 }
+
+/* Agrega esto AL FINAL de src/index.css en SecMontesAdmin */
+
+/* ===== MODO CLARO ===== */
+body.light-mode {
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f3f7;
+  --bg-input: #ffffff;
+  --border: #e2e8f0;
+  --border-light: #cbd5e1;
+
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #94a3b8;
+}
+
+body.light-mode .card,
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+body.light-mode .grid-bg {
+  background-image:
+    linear-gradient(rgba(0,212,160,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,160,0.06) 1px, transparent 1px);
+}
