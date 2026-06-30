@@ -1,6 +1,6 @@
 // src/App.jsx
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
@@ -12,7 +12,19 @@ import Premiaciones from './pages/Premiaciones'
 import Usuarios from './pages/Usuarios'
 import './index.css'
 
-const ADMIN_PASSWORD = 'HXIBIME2026'
+const ADMIN_PASSWORD = 'ibime2026hx'
+
+function RedirectHandler() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    const redirect = sessionStorage.getItem('redirect')
+    if (redirect) {
+      sessionStorage.removeItem('redirect')
+      navigate(redirect, { replace: true })
+    }
+  }, [])
+  return null
+}
 
 export default function App() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('hx_auth') === '1')
@@ -35,6 +47,7 @@ export default function App() {
 
   return (
     <BrowserRouter basename="/SecMontesAdmin">
+      <RedirectHandler />
       <Routes>
         <Route path="/" element={<Layout onLogout={handleLogout} />}>
           <Route index element={<Navigate to="/dashboard" />} />
