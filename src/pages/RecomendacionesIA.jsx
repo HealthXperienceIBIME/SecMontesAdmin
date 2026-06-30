@@ -2,11 +2,11 @@
 import { useState } from 'react'
 import QRScanner from '../components/QRScanner'
 import { getParticipant, saveRecomendaciones } from '../firebase/helpers'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, RefreshCw } from 'lucide-react'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
-async function generateRecommendationsStream(prompt, onChunk) {
+async function generateRecommendationsStream(prompt, onChunk, onDone) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`
   try {
     const res = await fetch(url, {
@@ -14,22 +14,31 @@ async function generateRecommendationsStream(prompt, onChunk) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+        // Aumentamos el límite de tokens para que no se corte la respuesta
+        generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
       })
     })
     if (!res.ok) {
       const err = await res.json()
       onChunk(`Error en la IA: ${err.error?.message || 'No se pudo conectar'}`)
+      onDone()
       return
     }
     const reader = res.body.getReader()
     const decoder = new TextDecoder('utf-8')
     let buffer = ''
     let textAcumulado = ''
+    let finishReason = null
+
     while (true) {
       const { value, done } = await reader.read()
       if (done) break
       buffer += decoder.decode(value, { stream: true })
+
+      // Detecta si Gemini marcó el final con finishReason
+      const finishMatch = buffer.match(/"finishReason":\s*"(\w+)"/)
+      if (finishMatch) finishReason = finishMatch[1]
+
       try {
         const regex = /"text":\s*"((?:[^"\\]|\\.)*)"/g
         let match
@@ -45,8 +54,15 @@ async function generateRecommendationsStream(prompt, onChunk) {
         }
       } catch (e) {}
     }
+
+    // Si se cortó por límite de tokens, lo avisamos
+    if (finishReason === 'MAX_TOKENS') {
+      console.warn('Respuesta cortada por límite de tokens')
+    }
+    onDone()
   } catch (e) {
     onChunk('Error de red al conectar con la IA.')
+    onDone()
   }
 }
 
@@ -70,18 +86,18 @@ ${tienePruebas ? `- Salto de cuerda: ${p.pruebas.saltoCuerda} reps en 15s
 Genera recomendaciones usando EXACTAMENTE estos títulos (sin asteriscos ni símbolos adicionales en los títulos):
 
 ## JARRA DEL BUEN BEBER
-Recomendaciones de hidratación según la Jarra del Buen Beber NOM-043 mexicana.
+Recomendaciones de hidratación según la Jarra del Buen Beber NOM-043 mexicana. Sé conciso: máximo 4 líneas.
 
 ## PLATO DEL BUEN COMER
-Recomendaciones del Plato del Buen Comer NOM-043 para frutas/verduras, cereales, proteínas y grasas.
+Recomendaciones del Plato del Buen Comer NOM-043 para frutas/verduras, cereales, proteínas y grasas. Sé conciso: máximo 4 líneas.
 
 ## DIETA SEMANAL
-Plan de 7 días (Lunes a Domingo) con Desayuno, Colación, Comida, Merienda y Cena. Sé conciso.
+Plan de 7 días (Lunes a Domingo) con Desayuno, Colación, Comida, Merienda y Cena. Sé MUY breve por día, una línea por comida.
 
 ## RECOMENDACIONES GENERALES
-Consejos de sueño, actividad física y hábitos saludables${tienePruebas ? ' y mejora de marcas deportivas' : ''}.
+Consejos de sueño, actividad física y hábitos saludables${tienePruebas ? ' y mejora de marcas deportivas' : ''}. Máximo 4 líneas.
 
-IMPORTANTE: Adapta todo al IMC de ${p.imcStatus || 'Normal'}. Usa **negritas** para puntos clave. Los títulos deben ser EXACTAMENTE como los escribí, sin modificaciones.`
+IMPORTANTE: Sé conciso en cada sección para asegurar que TODAS las secciones se completen. Adapta todo al IMC de ${p.imcStatus || 'Normal'}. Usa **negritas** para puntos clave. Los títulos deben ser EXACTAMENTE como los escribí, sin modificaciones.`
 }
 
 const SECTION_KEYS = ['JARRA DEL BUEN BEBER', 'PLATO DEL BUEN COMER', 'DIETA SEMANAL', 'RECOMENDACIONES GENERALES']
@@ -92,20 +108,14 @@ const SECTION_META = {
   'RECOMENDACIONES GENERALES': { icon: '✨', color: '#f59e0b', bg: 'rgba(245,158,11,0.05)', title: 'Recomendaciones Generales' },
 }
 
-// Parse en tiempo real — funciona con texto parcial
 function parseRecomendaciones(text) {
   const result = {}
   SECTION_KEYS.forEach(k => { result[k] = '' })
-
   let current = null
-  const lines = text.split('\n')
-  lines.forEach(line => {
+  text.split('\n').forEach(line => {
     const trimmed = line.replace(/^##\s*/, '').trim()
-    if (SECTION_KEYS.includes(trimmed)) {
-      current = trimmed
-    } else if (current) {
-      result[current] += line + '\n'
-    }
+    if (SECTION_KEYS.includes(trimmed)) { current = trimmed }
+    else if (current) result[current] += line + '\n'
   })
   return result
 }
@@ -135,9 +145,10 @@ export default function RecomendacionesIA() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [finished, setFinished] = useState(false)
 
   const handleSearch = async (id) => {
-    setText(''); setSaved(false)
+    setText(''); setSaved(false); setFinished(false)
     const p = await getParticipant(id)
     setParticipant(p || null)
   }
@@ -146,10 +157,15 @@ export default function RecomendacionesIA() {
     if (!participant) return
     setLoading(true)
     setText('')
-    await generateRecommendationsStream(buildPrompt(participant), (textAcumulado) => {
-      setText(textAcumulado)
-      if (loading) setLoading(false)
-    })
+    setFinished(false)
+    await generateRecommendationsStream(
+      buildPrompt(participant),
+      (textAcumulado) => {
+        setText(textAcumulado)
+        if (loading) setLoading(false)
+      },
+      () => setFinished(true)
+    )
     setLoading(false)
   }
 
@@ -160,6 +176,7 @@ export default function RecomendacionesIA() {
 
   const parsed = text ? parseRecomendaciones(text) : null
   const hasAnyContent = parsed && SECTION_KEYS.some(k => parsed[k].trim().length > 0)
+  const todasCompletas = parsed && SECTION_KEYS.every(k => parsed[k].trim().length > 10)
 
   return (
     <div className="fade-in">
@@ -170,7 +187,6 @@ export default function RecomendacionesIA() {
 
       {participant && (
         <div className="fade-in">
-          {/* Participant card */}
           <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#00d4a0,#8b5cf6)', display:'flex',alignItems:'center',justifyContent:'center', fontSize: 18, fontWeight: 700 }}>
               {participant.nombre?.[0]?.toUpperCase()}
@@ -184,7 +200,6 @@ export default function RecomendacionesIA() {
             </div>
           </div>
 
-          {/* Botón generar */}
           {!text && loading && (
             <div style={{ width: '100%', padding: 16, borderRadius: 12, background: 'var(--bg-secondary)', border: '1px solid var(--border)', textAlign: 'center', fontSize: 14, color: 'var(--text-secondary)' }}>
               <span className="spinner" style={{ width: 14, height: 14, marginRight: 8, verticalAlign: 'middle' }} /> Conectando con Gemini...
@@ -198,12 +213,12 @@ export default function RecomendacionesIA() {
             </button>
           )}
 
-          {/* Secciones en tiempo real */}
           {hasAnyContent && (
             <>
               {SECTION_KEYS.map(key => {
                 const { icon, color, bg, title } = SECTION_META[key]
                 const content = parsed[key] || ''
+                const incompleta = loading && content.trim().length === 0
                 return (
                   <div key={key} style={{ marginBottom: 16, background: bg, border: `1px solid ${color}30`, borderRadius: 14, padding: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -211,18 +226,23 @@ export default function RecomendacionesIA() {
                         {icon}
                       </div>
                       <h3 style={{ fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: 700, color, margin: 0 }}>{title}</h3>
-                      {loading && content.length === 0 && (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>esperando...</span>
-                      )}
+                      {incompleta && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>esperando...</span>}
                     </div>
                     <RenderLines content={content} />
                   </div>
                 )
               })}
 
+              {/* Alerta si terminó pero no completó todas las secciones */}
+              {finished && !todasCompletas && (
+                <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13, color: 'var(--accent-gold)', textAlign: 'center' }}>
+                  ⚠️ La respuesta no se generó completa. Te recomendamos dar click en "Regenerar".
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                <button onClick={handleGenerate} className="btn-secondary" style={{ flex: 1 }} disabled={loading}>
-                  ↺ Regenerar
+                <button onClick={handleGenerate} className="btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} disabled={loading}>
+                  <RefreshCw size={14} /> Regenerar
                 </button>
                 {!saved ? (
                   <button onClick={handleSave} className="btn-primary" style={{ flex: 2, padding: 14 }} disabled={loading}>
