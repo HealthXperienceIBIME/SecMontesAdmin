@@ -131,7 +131,7 @@ function PodiumModal({ top3, filtroLabel, onClose }) {
     ]
     return () => timers.forEach(clearTimeout)
   }, [])
-  const [tercero, segundo, primero] = top3
+  const [primero, segundo, tercero] = top3
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
