@@ -4,7 +4,7 @@ import {
   LayoutDashboard, UserPlus, Calculator, Activity,
   Sparkles, Trophy, Users, Sun, Moon, LogOut
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -17,33 +17,32 @@ const NAV = [
 ]
 
 export default function Layout({ onLogout }) {
-  const [dark, setDark] = useState(true)
+  const [light, setLight] = useState(() => localStorage.getItem('hx_theme') === 'light')
+
+  useEffect(() => {
+    if (light) {
+      document.body.classList.add('light-mode')
+    } else {
+      document.body.classList.remove('light-mode')
+    }
+    localStorage.setItem('hx_theme', light ? 'light' : 'dark')
+  }, [light])
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar */}
       <aside style={{
-        width: 220, flexShrink: 0,
+        width: 240, flexShrink: 0,
         background: 'var(--bg-secondary)',
         borderRight: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column',
         padding: '20px 0'
       }}>
-        {/* Logo */}
+        {/* Logo - MÁS GRANDE */}
         <div style={{ padding: '0 16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {/* Logo HealthXperience */}
-            <img
-              src="/SecMontesAdmin/logo-hx.png"
-              alt="HealthXperience"
-              style={{ height: 40, objectFit: 'contain' }}
-            />
-            {/* Logo IBIME */}
-            <img
-              src="/SecMontesAdmin/logo-ibime.png"
-              alt="IBIME"
-              style={{ height: 34, objectFit: 'contain' }}
-            />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <img src="/SecMontesAdmin/logo-hx.png" alt="HealthXperience" style={{ height: 64, objectFit: 'contain' }} />
+            <img src="/SecMontesAdmin/logo-ibime.png" alt="IBIME" style={{ height: 36, objectFit: 'contain' }} />
           </div>
         </div>
 
@@ -66,13 +65,13 @@ export default function Layout({ onLogout }) {
 
         {/* Bottom */}
         <div style={{ padding: '16px 10px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <button onClick={() => setDark(!dark)}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'none', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 400 }}>
-            {dark ? <Sun size={16}/> : <Moon size={16}/>}
-            {dark ? 'Modo claro' : 'Modo oscuro'}
+          <button onClick={() => setLight(!light)}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'none', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 400, cursor: 'pointer' }}>
+            {light ? <Moon size={16}/> : <Sun size={16}/>}
+            {light ? 'Modo oscuro' : 'Modo claro'}
           </button>
           <button onClick={onLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'none', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 400 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, background: 'none', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 400, cursor: 'pointer' }}>
             <LogOut size={16}/>
             Cerrar sesión
           </button>
@@ -80,8 +79,7 @@ export default function Layout({ onLogout }) {
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, overflow: 'auto', background: 'var(--bg-primary)' }}
-        className="grid-bg">
+      <main style={{ flex: 1, overflow: 'auto', background: 'var(--bg-primary)' }} className="grid-bg">
         <div style={{ padding: '36px 40px', maxWidth: 1200 }}>
           <Outlet />
         </div>
