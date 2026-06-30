@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>HealthXperience Admin</title>
+  <script>
+    var path = window.location.pathname;
+    var base = '/SecMontesAdmin';
+    var segment = path.replace(base, '');
+    sessionStorage.setItem('redirect', segment);
+    window.location.replace(base + '/');
+  </script>
+</head>
+<body></body>
+</html>
