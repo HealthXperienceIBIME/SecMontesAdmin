@@ -10,20 +10,100 @@ function calcIMC(peso, altura) {
   const colorMap = { 'bajo-peso': 'var(--accent-blue)', 'normal': 'var(--accent-teal)', 'sobrepeso': 'var(--accent-gold)', 'obesidad': 'var(--status-danger)' }
   const grasa = Math.round((1.2 * imc + 0.23 * 20 - 5.4) * 10) / 10
   const musculo = Math.round((peso - (peso * Math.max(grasa, 5) / 100)) * 10) / 10
-  return {
-    imc: Math.round(imc * 100) / 100,
-    status: statusMap[tipo],
-    color: colorMap[tipo],
-    tipo,
-    grasa: Math.max(grasa, 5),
-    musculo
-  }
+  return { imc: Math.round(imc * 100) / 100, status: statusMap[tipo], color: colorMap[tipo], tipo, grasa: Math.max(grasa, 5), musculo }
 }
 
-// Paso individual de cascada — SIN hooks adentro
+function IMCRangeBar({ imc }) {
+  const VISUAL_MIN = 10
+  const VISUAL_MAX = 40
+  const clampedIMC = Math.min(Math.max(imc, VISUAL_MIN), VISUAL_MAX)
+  const pct = ((clampedIMC - VISUAL_MIN) / (VISUAL_MAX - VISUAL_MIN)) * 100
+
+  const ranges = [
+    { label: 'Bajo peso', min: 10, max: 18.5, color: '#3b82f6', desc: '< 18.5' },
+    { label: 'Normal',    min: 18.5, max: 25, color: '#00d4a0', desc: '18.5–24.9' },
+    { label: 'Sobrepeso', min: 25,   max: 30, color: '#f59e0b', desc: '25–29.9' },
+    { label: 'Obesidad',  min: 30,   max: 40, color: '#ef4444', desc: '≥ 30' },
+  ]
+
+  const activeColor = imc < 18.5 ? '#3b82f6' : imc < 25 ? '#00d4a0' : imc < 30 ? '#f59e0b' : '#ef4444'
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 14 }}>
+        📏 Escala de IMC
+      </div>
+
+      {/* Barra */}
+      <div style={{ position: 'relative', marginBottom: 32, marginTop: 8 }}>
+        <div style={{ display: 'flex', height: 12, borderRadius: 8, overflow: 'hidden' }}>
+          {ranges.map(r => (
+            <div key={r.label} style={{ flex: r.max - r.min, background: r.color, opacity: 0.75 }} />
+          ))}
+        </div>
+
+        {/* Indicador */}
+        <div style={{
+          position: 'absolute',
+          left: `${pct}%`,
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 22, height: 22, borderRadius: '50%',
+          background: '#fff',
+          border: `3px solid ${activeColor}`,
+          boxShadow: `0 0 12px ${activeColor}80`,
+          zIndex: 2,
+          transition: 'left 0.6s ease'
+        }} />
+
+        {/* Etiqueta valor */}
+        <div style={{
+          position: 'absolute',
+          left: `${pct}%`,
+          top: 20,
+          transform: 'translateX(-50%)',
+          background: activeColor,
+          color: '#fff',
+          fontSize: 11,
+          fontWeight: 700,
+          padding: '3px 8px',
+          borderRadius: 6,
+          whiteSpace: 'nowrap',
+          boxShadow: `0 2px 8px ${activeColor}60`
+        }}>
+          IMC {imc}
+        </div>
+      </div>
+
+      {/* Etiquetas */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+        {ranges.map(r => {
+          const active = (r.label === 'Bajo peso' && imc < 18.5) ||
+                         (r.label === 'Normal' && imc >= 18.5 && imc < 25) ||
+                         (r.label === 'Sobrepeso' && imc >= 25 && imc < 30) ||
+                         (r.label === 'Obesidad' && imc >= 30)
+          return (
+            <div key={r.label} style={{
+              textAlign: 'center', padding: '8px 4px', borderRadius: 10,
+              background: active ? r.color + '18' : 'var(--bg-secondary)',
+              border: `1px solid ${active ? r.color : 'var(--border)'}`,
+              transition: 'all 0.3s'
+            }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: r.color, margin: '0 auto 6px' }} />
+              <div style={{ fontSize: 11, color: active ? r.color : 'var(--text-muted)', fontWeight: active ? 700 : 400 }}>
+                {r.label}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{r.desc}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function CascadeStep({ label, value, color, delay, icon, started }) {
   const [visible, setVisible] = useState(false)
-
   useEffect(() => {
     if (!started) return
     const t = setTimeout(() => setVisible(true), delay)
@@ -32,17 +112,10 @@ function CascadeStep({ label, value, color, delay, icon, started }) {
 
   return (
     <div style={{
-      padding: '14px 18px',
-      background: 'var(--bg-secondary)',
-      borderRadius: 10,
-      marginBottom: 10,
+      padding: '14px 18px', background: 'var(--bg-secondary)', borderRadius: 10, marginBottom: 10,
       borderLeft: `3px solid ${color}`,
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateX(0)' : 'translateX(-20px)',
-      transition: 'all 0.4s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 14
+      opacity: visible ? 1 : 0, transform: visible ? 'translateX(0)' : 'translateX(-20px)',
+      transition: 'all 0.4s ease', display: 'flex', alignItems: 'center', gap: 14
     }}>
       <span style={{ fontSize: 20 }}>{icon}</span>
       <div>
@@ -53,13 +126,11 @@ function CascadeStep({ label, value, color, delay, icon, started }) {
   )
 }
 
-// Stat card individual — SIN hooks adentro
 function StatCard({ label, value, sub, color, visible }) {
   return (
     <div className="card" style={{
       borderColor: color + '40', background: color + '10',
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(10px)',
+      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(10px)',
       transition: 'all 0.4s ease'
     }}>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{label}</div>
@@ -79,23 +150,17 @@ export default function CalculoIMC() {
   const [statsVisible, setStatsVisible] = useState([false, false, false])
 
   const handleSearch = async (id) => {
-    setResult(null)
-    setSaved(false)
-    setShowCascade(false)
-    setNotFound(false)
-    setParticipant(null)
+    setResult(null); setSaved(false); setShowCascade(false)
+    setNotFound(false); setParticipant(null)
     setStatsVisible([false, false, false])
     setLoading(true)
-
     const p = await getParticipant(id)
     setLoading(false)
-
     if (p) {
       setParticipant(p)
       const r = calcIMC(p.peso, p.altura)
       setResult(r)
       setTimeout(() => setShowCascade(true), 300)
-      // Stats aparecen escalonadas
       setTimeout(() => setStatsVisible([true, false, false]), 2000)
       setTimeout(() => setStatsVisible([true, true, false]), 2200)
       setTimeout(() => setStatsVisible([true, true, true]), 2400)
@@ -133,12 +198,7 @@ export default function CalculoIMC() {
       <QRScanner onFound={handleSearch} />
 
       {loading && <div style={{ textAlign: 'center', padding: 40 }}><span className="spinner" /></div>}
-
-      {notFound && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-          No se encontró participante con ese código QR
-        </div>
-      )}
+      {notFound && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No se encontró participante con ese código QR</div>}
 
       {participant && result && (
         <div className="fade-in">
@@ -162,6 +222,11 @@ export default function CalculoIMC() {
             {STEPS.map((step, i) => (
               <CascadeStep key={i} {...step} started={showCascade} />
             ))}
+          </div>
+
+          {/* Barra de rangos IMC */}
+          <div className="card" style={{ marginBottom: 16 }}>
+            <IMCRangeBar imc={result.imc} />
           </div>
 
           {/* Stats */}
