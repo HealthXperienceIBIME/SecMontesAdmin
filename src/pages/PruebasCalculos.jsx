@@ -2,14 +2,13 @@
 import { useState, useRef } from 'react'
 import QRScanner from '../components/QRScanner'
 import { getParticipant, savePruebas, omitirPruebas } from '../firebase/helpers'
-import { SkipForward, CheckCircle } from 'lucide-react'
+import { SkipForward } from 'lucide-react'
 
 function useStopwatch() {
   const [time, setTime] = useState(0)
   const [running, setRunning] = useState(false)
   const ref = useRef(null)
   const startTime = useRef(0)
-
   const start = () => {
     if (running) return
     startTime.current = Date.now() - time * 1000
@@ -26,7 +25,6 @@ function useCountdown(initial = 15) {
   const [running, setRunning] = useState(false)
   const [done, setDone] = useState(false)
   const ref = useRef(null)
-
   const start = () => {
     if (running || done) return
     const end = Date.now() + time * 1000
@@ -39,13 +37,12 @@ function useCountdown(initial = 15) {
   }
   const pause = () => { clearInterval(ref.current); setRunning(false) }
   const reset = () => { clearInterval(ref.current); setRunning(false); setTime(initial); setDone(false) }
-
   return { time, running, done, start, pause, reset }
 }
 
 export default function PruebasCalculos() {
   const [participant, setParticipant] = useState(null)
-  const [modo, setModo] = useState(null) // null | 'realizar' | 'omitir'
+  const [modo, setModo] = useState(null)
   const [saltosCount, setSaltosCount] = useState('')
   const [lanzamiento, setLanzamiento] = useState('')
   const [saved, setSaved] = useState(false)
@@ -77,7 +74,6 @@ export default function PruebasCalculos() {
     const a = carreraT > 0 ? v / carreraT : 0
     const f = peso * a
     const potLanz = parseFloat(lanzamiento) ? parseFloat(lanzamiento) * 8.3 : 0
-
     return {
       saltoCuerda: saltos,
       ritmo: saltos * 4,
@@ -111,7 +107,6 @@ export default function PruebasCalculos() {
 
       <QRScanner onFound={handleSearch} />
 
-      {/* Participant info */}
       {participant && (
         <div className="card fade-in" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#00d4a0,#8b5cf6)', display:'flex',alignItems:'center',justifyContent:'center', fontSize: 18, fontWeight: 700 }}>
@@ -125,30 +120,25 @@ export default function PruebasCalculos() {
         </div>
       )}
 
-      {/* Selección de modo */}
       {participant && !modo && !saved && (
         <div className="card fade-in" style={{ textAlign: 'center', padding: 32 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🏃</div>
           <h3 style={{ fontFamily: 'Space Grotesk', marginBottom: 8 }}>¿El participante realizará las pruebas físicas?</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 24 }}>Si el padre/participante no puede realizar las pruebas por condiciones físicas, puede omitirlas.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 24 }}>Si el padre/participante no puede realizar las pruebas, puede omitirlas.</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <button onClick={() => setModo('realizar')} className="btn-primary" style={{ padding: '12px 28px', fontSize: 14 }}>
-              ✅ Sí, realizar pruebas
-            </button>
+            <button onClick={() => setModo('realizar')} className="btn-primary" style={{ padding: '12px 28px', fontSize: 14 }}>✅ Sí, realizar pruebas</button>
             <button onClick={() => setModo('omitir')} className="btn-secondary" style={{ padding: '12px 28px', fontSize: 14 }}>
-              <SkipForward size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-              Omitir pruebas
+              <SkipForward size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Omitir pruebas
             </button>
           </div>
         </div>
       )}
 
-      {/* Omitir confirmación */}
       {participant && modo === 'omitir' && !saved && (
         <div className="card fade-in" style={{ textAlign: 'center', padding: 32, borderColor: 'var(--accent-gold)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>⏭️</div>
           <h3 style={{ fontFamily: 'Space Grotesk', color: 'var(--accent-gold)', marginBottom: 8 }}>Omitir pruebas físicas</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 24 }}>Las recomendaciones de IA se generarán únicamente con los datos de IMC, peso y altura del participante.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 24 }}>Las recomendaciones de IA se generarán únicamente con los datos de IMC.</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
             <button onClick={() => setModo(null)} className="btn-secondary" style={{ padding: '12px 20px' }}>← Regresar</button>
             <button onClick={handleOmitir} disabled={loading}
@@ -159,22 +149,19 @@ export default function PruebasCalculos() {
         </div>
       )}
 
-      {/* Pruebas */}
       {participant && modo === 'realizar' && !saved && (
         <div className="fade-in">
-
-          {/* 1. Salto de cuerda */}
-          <div className="card" style={{ marginBottom: 12 }}>
+          {/* 1. Salto de cuerda — cuadro de color */}
+          <div className="card" style={{ marginBottom: 12, background: 'rgba(0,212,160,0.06)', borderColor: 'rgba(0,212,160,0.25)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-teal)', color: '#080d14', fontWeight: 700, display:'flex',alignItems:'center',justifyContent:'center', fontSize: 12 }}>1</span>
-                <span style={{ fontWeight: 700 }}>SALTO DE CUERDA</span>
+                <span style={{ fontWeight: 700, color: 'var(--accent-teal)' }}>SALTO DE CUERDA</span>
               </div>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>15 segundos</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              {/* Circular timer */}
               <div style={{ position: 'relative', width: 120, height: 120 }}>
                 <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
                   <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" strokeWidth="8"/>
@@ -202,7 +189,6 @@ export default function PruebasCalculos() {
                 <button onClick={salto.reset} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 8, padding: '8px 14px' }}>↺</button>
               </div>
 
-              {/* Input manual — aparece cuando termina el timer */}
               {salto.done && (
                 <div className="fade-in" style={{ width: '100%', textAlign: 'center' }}>
                   <div style={{ color: 'var(--accent-gold)', fontWeight: 700, marginBottom: 10, fontSize: 13 }}>⏱️ ¡Tiempo terminado! Ingresa el número de saltos realizados</div>
@@ -219,31 +205,32 @@ export default function PruebasCalculos() {
             </div>
           </div>
 
-          {/* 2. Lanzamiento */}
-          <div className="card" style={{ marginBottom: 12 }}>
+          {/* 2. Lanzamiento — cuadro de color morado */}
+          <div className="card" style={{ marginBottom: 12, background: 'rgba(139,92,246,0.06)', borderColor: 'rgba(139,92,246,0.25)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-purple)', color: '#fff', fontWeight: 700, display:'flex',alignItems:'center',justifyContent:'center', fontSize: 12 }}>2</span>
-              <span style={{ fontWeight: 700 }}>LANZAMIENTO</span>
+              <span style={{ fontWeight: 700, color: 'var(--accent-purple)' }}>LANZAMIENTO</span>
             </div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>Distancia (metros)</label>
-            <input type="number" step="0.01" value={lanzamiento} onChange={e => setLanzamiento(e.target.value)} placeholder="0.00" style={{ maxWidth: 200 }} />
+            <input type="number" step="0.01" value={lanzamiento} onChange={e => setLanzamiento(e.target.value)} placeholder="0.00"
+              style={{ maxWidth: 200, fontSize: 18, fontWeight: 700, color: 'var(--accent-purple)' }} />
           </div>
 
-          {/* 3. Carrera 45m */}
-          <div className="card" style={{ marginBottom: 16 }}>
+          {/* 3. Carrera 45m — cuadro de color dorado */}
+          <div className="card" style={{ marginBottom: 16, background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.25)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-gold)', color: '#080d14', fontWeight: 700, display:'flex',alignItems:'center',justifyContent:'center', fontSize: 12 }}>3</span>
-              <span style={{ fontWeight: 700 }}>CARRERA 45 METROS</span>
+              <span style={{ fontWeight: 700, color: 'var(--accent-gold)' }}>CARRERA 45 METROS</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
               <div style={{ position: 'relative', width: 120, height: 120 }}>
                 <svg width="120" height="120">
                   <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" strokeWidth="8"/>
-                  {carrera.running && <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent-teal)" strokeWidth="8" strokeDasharray="4 8" strokeLinecap="round" style={{ animation: 'spin 2s linear infinite', transformOrigin:'center' }}/>}
+                  {carrera.running && <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent-gold)" strokeWidth="8" strokeDasharray="4 8" strokeLinecap="round" style={{ animation: 'spin 2s linear infinite', transformOrigin:'center' }}/>}
                 </svg>
                 <div className="stat-value" style={{ position: 'absolute', inset: 0, display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center' }}>
-                  <span style={{ fontSize: 26, color: carrera.running ? 'var(--accent-teal)' : 'var(--text-primary)' }}>
+                  <span style={{ fontSize: 26, color: carrera.running ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
                     {Math.floor(carrera.time).toString().padStart(2, '0')}
                     <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>.{Math.floor((carrera.time % 1) * 100).toString().padStart(2,'0')}</span>
                   </span>
@@ -270,7 +257,6 @@ export default function PruebasCalculos() {
         </div>
       )}
 
-      {/* Resultados guardados */}
       {saved && (
         <div className="fade-in">
           {modo === 'omitir' ? (
@@ -289,10 +275,39 @@ export default function PruebasCalculos() {
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>⚡ RESULTADOS DE PRUEBAS</div>
 
-                  <div className="card" style={{ marginBottom: 10, background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.2)' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 12 }}>⚡ SALTO DE CUERDA</div>
+                  {/* Salto */}
+                  <div className="card" style={{ marginBottom: 10, background: 'rgba(0,212,160,0.08)', borderColor: 'rgba(0,212,160,0.25)' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--accent-teal)', marginBottom: 12 }}>⚡ SALTO DE CUERDA</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
                       {[['Repeticiones', results.saltoCuerda, '/ 15s'], ['Ritmo', results.ritmo, '/ min'], ['Nivel', results.saltoNivel, '']].map(([l,v,u]) => (
+                        <div key={l} style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{l}</div>
+                          <div className="stat-value" style={{ fontSize: 22, color: l === 'Nivel' ? LEVEL_COLOR(v) : 'var(--accent-teal)' }}>{v}</div>
+                          {u && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Lanzamiento */}
+                  <div className="card" style={{ marginBottom: 10, background: 'rgba(139,92,246,0.08)', borderColor: 'rgba(139,92,246,0.25)' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--accent-purple)', marginBottom: 12 }}>🎯 LANZAMIENTO</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+                      {[['Distancia', results.lanzamiento, 'metros'], ['Potencia', results.potLanz, 'estimada'], ['Nivel', results.lanzNivel, '']].map(([l,v,u]) => (
+                        <div key={l} style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{l}</div>
+                          <div className="stat-value" style={{ fontSize: 22, color: l === 'Nivel' ? LEVEL_COLOR(v) : 'var(--accent-purple)' }}>{v}</div>
+                          {u && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Carrera 45m */}
+                  <div className="card" style={{ marginBottom: 10, background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.25)' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 12 }}>🏃 CARRERA 45M</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+                      {[['Tiempo', results.carrera, 'segundos'], ['Velocidad', results.velocidad, 'm/s'], ['Nivel', results.carreraNivel, '']].map(([l,v,u]) => (
                         <div key={l} style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{l}</div>
                           <div className="stat-value" style={{ fontSize: 22, color: l === 'Nivel' ? LEVEL_COLOR(v) : 'var(--accent-gold)' }}>{v}</div>
@@ -302,6 +317,7 @@ export default function PruebasCalculos() {
                     </div>
                   </div>
 
+                  {/* Física derivada */}
                   {[
                     [`Velocidad (v = d / t)`, `v = 45 m / ${results.carrera} s → ${results.velocidad} m/s`, 'var(--accent-teal)'],
                     [`Aceleración (a = v / t)`, `a = ${results.velocidad} / ${results.carrera} s → ${results.aceleracion} m/s²`, 'var(--accent-purple)'],
