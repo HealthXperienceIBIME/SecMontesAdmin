@@ -24,14 +24,14 @@ export default function Login({ onLogin }) {
       backgroundSize: '40px 40px'
     }}>
       <div style={{
-        width: 420, background: 'var(--bg-card)', border: '1px solid var(--border)',
+        width: 440, background: 'var(--bg-card)', border: '1px solid var(--border)',
         borderRadius: 20, padding: 40, boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
       }} className="fade-in">
 
-        {/* Logos */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-          <img src="/SecMontesAdmin/logo-ibime.png" alt="IBIME" style={{ height: 38, objectFit: 'contain' }} />
-          <img src="/SecMontesAdmin/logo-hx.png" alt="HealthXperience" style={{ height: 38, objectFit: 'contain' }} />
+        {/* Logos MÁS GRANDES */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginBottom: 28 }}>
+          <img src="/SecMontesAdmin/logo-hx.png" alt="HealthXperience" style={{ height: 80, objectFit: 'contain' }} />
+          <img src="/SecMontesAdmin/logo-ibime.png" alt="IBIME" style={{ height: 44, objectFit: 'contain' }} />
         </div>
 
         {/* Title */}
@@ -73,7 +73,7 @@ export default function Login({ onLogin }) {
         </form>
 
         <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-muted)', fontSize: 12 }}>
-          PROYECTO HEALTHXPERIENCE IBIME 2026
+          🔒 Acceso exclusivo IBIME 2026
         </p>
       </div>
     </div>
